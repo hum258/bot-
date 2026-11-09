@@ -1,0 +1,7 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+httpx>=0.27,<1
+requests>=2.32,<3
+python-dotenv>=1.0,<2
+# Optional voice transcription (large download on first install):
+# faster-whisper>=1.0,<2
