@@ -1,8 +1,12 @@
 import os
 import requests
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/chat")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+GEMINI_URL = (
+    f"https://generativelanguage.googleapis.com/v1beta/models/"
+    f"{GEMINI_MODEL}:generateContent"
+)
 SYSTEM_PROMPT = os.getenv(
     "SYSTEM_PROMPT",
     "أنت مساعد ذكي عام. أجب بلغة المستخدم، وكن واضحاً ومفيداً. "
@@ -13,25 +17,41 @@ _whisper_model = None
 
 
 def ask_ai(user_text: str, history: list[dict[str, str]]) -> str:
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(history[-10:])
-    messages.append({"role": "user", "content": user_text})
+    if not GEMINI_API_KEY:
+        return "لم يتم إعداد مفتاح Gemini API بعد. أضِف GEMINI_API_KEY إلى ملف .env."
+
+    contents = []
+    for item in history[-10:]:
+        role = "model" if item.get("role") == "assistant" else "user"
+        content = str(item.get("content", "")).strip()
+        if content:
+            contents.append({"role": role, "parts": [{"text": content}]})
+    contents.append({"role": "user", "parts": [{"text": user_text}]})
 
     try:
         response = requests.post(
-            OLLAMA_URL,
-            json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
-            timeout=180,
+            GEMINI_URL,
+            params={"key": GEMINI_API_KEY},
+            json={
+                "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+                "contents": contents,
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 700},
+            },
+            timeout=90,
         )
         response.raise_for_status()
-        answer = response.json().get("message", {}).get("content", "").strip()
+        data = response.json()
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        answer = "\n".join(
+            part.get("text", "") for part in parts if part.get("text")
+        ).strip()
         return answer or "لم أستطع إنشاء إجابة الآن. جرّب مرة أخرى."
     except requests.RequestException as exc:
-        print(f"Local AI error: {type(exc).__name__}: {exc}")
-        return (
-            "خدمة الذكاء الاصطناعي غير متصلة حالياً. "
-            "تأكد أن Ollama يعمل على الكمبيوتر ثم أعد المحاولة."
-        )
+        print(f"Gemini API error: {type(exc).__name__}: {exc}")
+        return "تعذر الاتصال بخدمة الذكاء الاصطناعي حالياً. تحقق من الإنترنت ومفتاح API ثم أعد المحاولة."
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        print(f"Gemini response error: {type(exc).__name__}: {exc}")
+        return "وصل رد غير متوقع من خدمة الذكاء الاصطناعي. جرّب مرة أخرى."
 
 
 def transcribe_audio(audio_path: str) -> str:
