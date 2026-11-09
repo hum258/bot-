@@ -1,17 +1,17 @@
 # WhatsApp AI Assistant
 
-A starter Python webhook for the official WhatsApp Cloud API. It accepts text and audio messages, transcribes audio locally with faster-whisper, and generates replies using a local Ollama model.
+A starter Python webhook for the official WhatsApp Cloud API. It accepts text and audio messages, transcribes audio locally with optional faster-whisper, and generates text replies using the Gemini API.
 
 ## Important status
 
-This repository is the **bot application code**, not a live WhatsApp connection yet. A working connection still requires:
-- An eligible phone number and a Meta WhatsApp Business Platform setup.
+This repository contains the bot application code; it is **not connected to WhatsApp yet**. A working WhatsApp connection still requires:
+- An eligible phone number and Meta WhatsApp Business Platform setup.
 - A public HTTPS address for this app's webhook.
 - Meta's access token, Phone Number ID, and webhook verification.
-- A computer/server that stays online.
-- Ollama installed and running on the same computer as this app (or an accessible machine).
+- An always-on hosting service or computer.
+- A Gemini API key configured privately in the environment.
 
-GitHub stores the code; GitHub Pages and ordinary GitHub Actions do not run this webhook as an always-on server. No WhatsApp credentials should ever be committed to GitHub.
+GitHub stores the code; it does not run this webhook as an always-on server. Never commit your real `.env` file or share API keys and WhatsApp tokens.
 
 ## 1. Install Python packages
 
@@ -20,25 +20,21 @@ Python 3.11 is recommended.
 ```bash
 python -m venv .venv
 # Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
+.venv\\Scripts\\activate
 pip install -r requirements.txt
 ```
 
-## 2. Install local AI
+## 2. Get Gemini API access
 
-Install Ollama from https://ollama.com/ and download a small model:
+Use Google AI Studio to create an API key: https://aistudio.google.com/app/apikey
 
-```bash
-ollama pull qwen2.5:3b
-```
+The Gemini API offers a free tier for eligible accounts and models, with usage limits. Do not enable paid billing if you want to keep this project free. Availability and eligibility depend on Google's account, region, and current rules. A parent or guardian should handle account setup if required by the service's age terms.
 
-Keep Ollama running. If your computer has limited RAM, a smaller model may be needed.
+Copy `.env.example` to `.env`, then set `GEMINI_API_KEY` in your private `.env` file. Never paste the key into GitHub or this chat.
 
-## 3. Configure environment
+## 3. Configure WhatsApp later
 
-Copy `.env.example` to `.env` and fill the Meta values only after official API onboarding. Never share the values or commit `.env`.
+Fill in `VERIFY_TOKEN`, `WHATSAPP_TOKEN`, and `PHONE_NUMBER_ID` only after completing Meta's official WhatsApp Cloud API setup. Do not put real credentials in this repository.
 
 ## 4. Run the webhook locally
 
@@ -56,12 +52,13 @@ Install the optional package:
 pip install faster-whisper
 ```
 
-The first run downloads the Whisper model. Audio is processed on the machine running this app.
+The first run downloads the Whisper model. Audio transcription is processed on the machine running this app and is optional. Without it, text messages can still be handled.
 
 ## Current limitations
 
 - Conversation history is held in RAM and resets when the app restarts.
 - Only text and audio messages are handled in this starter version.
-- It does not bypass Meta verification, supported-country rules, number eligibility, or WhatsApp messaging policies.
+- Gemini free-tier access has rate and usage limits; it is not unlimited.
+- Voice transcription requires the optional local Whisper package and model download.
+- It does not bypass Meta verification, phone-number eligibility, supported-country rules, or WhatsApp messaging policies.
 - The app should be disclosed as an automated assistant to people messaging the number.
-- Free local AI avoids per-message model API charges, but the computer, electricity, internet, and hosting are still needed.
