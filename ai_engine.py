@@ -31,7 +31,7 @@ def ask_ai(user_text: str, history: list[dict[str, str]]) -> str:
     try:
         response = requests.post(
             GEMINI_URL,
-            params={"key": GEMINI_API_KEY},
+            headers={"x-goog-api-key": GEMINI_API_KEY},
             json={
                 "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
                 "contents": contents,
